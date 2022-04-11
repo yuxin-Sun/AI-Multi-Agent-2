@@ -1,0 +1,40 @@
+﻿<Properties StartupConfiguration="{7DD4C535-6F20-4961-647C-F5B203AFF302}|">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/GoalCheck.cs">
+    <Files>
+      <File FileName="Assets/Scripts/GoalCheck.cs" Line="1" Column="1" />
+      <File FileName="Assets/Scripts/CarAISoccer_gr1.cs" />
+      <File FileName="Assets/Scripts/DroneAI.cs" Line="23" Column="59" />
+      <File FileName="Assets/Scripts/GameManagerSoccer.cs" Line="1" Column="1" />
+      <File FileName="Assets/Scripts/LookAt.cs" Line="1" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="Assignment_3" expanded="True">
+            <Node name="Assets" expanded="True">
+              <Node name="Misc" expanded="True">
+                <Node name="Standard Assets" expanded="True">
+                  <Node name="Vehicles" expanded="True">
+                    <Node name="Car" expanded="True">
+                      <Node name="Scripts" expanded="True" />
+                    </Node>
+                  </Node>
+                </Node>
+              </Node>
+              <Node name="Scripts" expanded="True">
+                <Node name="GoalCheck.cs" selected="True" />
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp PreferredExecutionTarget="0c521ce1-af60-44ae-9d24-96f2735ad2e1" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
