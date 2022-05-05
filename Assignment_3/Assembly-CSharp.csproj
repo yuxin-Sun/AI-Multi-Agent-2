@@ -8,7 +8,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{7DD4C535-6F20-4961-647C-F5B203AFF302}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -90,7 +91,6 @@
     <Compile Include="Assets\Scripts\AgentRVO.cs" />
     <Compile Include="Assets\Scripts\driving_methods.cs" />
     <Compile Include="Assets\Scripts\DroneAI.cs" />
-    <Compile Include="Assets\Scripts\terrainBB_script.cs" />
     <Compile Include="Assets\Scripts\DroneAISoccer_red.cs" />
     <Compile Include="Assets\Scripts\GameManagerSoccer.cs" />
     <Compile Include="Assets\Scripts\PathPlanner.cs" />
