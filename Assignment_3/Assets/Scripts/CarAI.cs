@@ -31,8 +31,8 @@ namespace UnityStandardAssets.Vehicles.Car
         // Tracking variables
         public float k_p = 2.5f, k_d = 0.5f;
         float to_path, distance, steering, acceleration, starting_timer = 0, stuck_timer = 0, old_acceleration = 0, acceleration_change, my_speed = 0, unstuck_error, old_unstuck_error = 100, unstuck_error_change, nextAngle;
-        int lookahead = 0, my_max_speed = 20, stuck_times = 0, to_target_idx;
-        bool starting_phase = true, is_stuck = false, counting = false, no_waypoint = true, break_flag = false;
+        int lookahead = 0, my_max_speed = 20, stuck_times = 0, to_target_idx, break_flag = 0;
+        bool starting_phase = true, is_stuck = false, counting = false, no_waypoint = true;
         Vector3 difference, target_position, aheadOfTarget_pos, target_velocity, position_error, velocity_error, desired_acceleration, closest, null_vector = new Vector3(0, 0, 0);
 
 
@@ -154,16 +154,15 @@ namespace UnityStandardAssets.Vehicles.Car
                     Debug.Log("Goal reached for index:"+own_index);
                     //Debug.Log(e);
                     //stop the car
-                    m_Car.Move(0f, Vector3.Dot(my_goal_object.transform.position - transform.position, transform.forward), 0f, 0f);
-                    //m_Car.Move(0, 0, 0, 0);
-                    break_flag = true;
-                    my_rigidbody.velocity = new Vector3(0, 0, 0);
-                }
-                if(break_flag)
-                {
-                    //enabled = false; //doesn't work
+                    //m_Car.Move(0f, Vector3.Dot(my_goal_object.transform.position - transform.position, transform.forward), 0f, 0f);
                     m_Car.Move(0, 0, 0, 0);
-
+                    break_flag ++;
+                    
+                }
+                if(break_flag>2)
+                {
+                    enabled = false; //doesn't work
+                    my_rigidbody.velocity = new Vector3(0, 0, 0);
 
                 }
                 else
@@ -308,7 +307,7 @@ namespace UnityStandardAssets.Vehicles.Car
                     {
                         //to_target_idx = ran.Next(to_target_idx, my_path.Count);
                         //target_position = my_path[to_target_idx];
-                        target_position = new Vector3(UnityEngine.Random.Range(-5.0f, 5.0f), 0, UnityEngine.Random.Range(-5.0f, 5.0f));
+                        target_position = new Vector3(UnityEngine.Random.Range(-10.0f, 10.0f), 0, UnityEngine.Random.Range(-10.0f, 10.0f));
                         Debug.Log("Random movement to sp index");
                         stuck_times = 0;
                     }
