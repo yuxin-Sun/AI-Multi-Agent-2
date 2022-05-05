@@ -38,12 +38,12 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657838, g: 0.49641234, b: 0.57481676, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 11
+  serializedVersion: 12
   m_GIWorkflowMode: 0
   m_GISettings:
     serializedVersion: 2
@@ -96,8 +96,10 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaAO: 1
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
-  m_UseShadowmask: 1
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 081ffd9bd048c6d408a545d654a6e6f8,
+    type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -117,6 +119,8 @@ NavMeshSettings:
     manualTileSize: 0
     tileSize: 256
     accuratePlacement: 0
+    maxJobWorkers: 0
+    preserveTilesOutsideBounds: 0
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
@@ -145,8 +149,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170076733}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -195,6 +200,7 @@ Light:
   m_UseColorTemperature: 0
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
   m_ShadowAngle: 0
 --- !u!4 &170076735
@@ -345,7 +351,7 @@ MonoBehaviour:
   completion_time: 0
   goal_tolerance: 20
   finished: 0
-  no_of_cars: 50
+  no_of_cars: 10
   my_cars: []
 --- !u!4 &1004648171
 Transform:
@@ -390,7 +396,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed951abcb196b40f38b3699dfa82c76c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  terrain_filename: text/terrainAA
+  terrain_filename: text/terrainBB
   myInfo:
     file_name: 
     x_low: 0
@@ -401,9 +407,7 @@ MonoBehaviour:
     z_N: 0
     start_pos: {x: 0, y: 0, z: 0}
     goal_pos: {x: 0, y: 0, z: 0}
-    wall_height: 15
   flag: {fileID: 4434580643111549203, guid: 8e0d60321797749079c9a8ec5e90a2d6, type: 3}
-  wall_height: 15
 --- !u!4 &1358011050
 Transform:
   m_ObjectHideFlags: 0
@@ -455,7 +459,7 @@ Terrain:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1788454091}
   m_Enabled: 1
-  serializedVersion: 5
+  serializedVersion: 6
   m_TerrainData: {fileID: 15600000, guid: 4720a9c8d00a44c3da4e2996cdb02f54, type: 2}
   m_TreeDistance: 5000
   m_TreeBillboardDistance: 50
@@ -478,6 +482,7 @@ Terrain:
   m_ScaleInLightmap: 0.1024
   m_LightmapParameters: {fileID: 15203, guid: 0000000000000000f000000000000000, type: 0}
   m_GroupingID: 0
+  m_RenderingLayerMask: 1
   m_AllowAutoConnect: 0
 --- !u!4 &1788454094
 Transform:

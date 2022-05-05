@@ -6186,6 +6186,9 @@ MonoBehaviour:
   terrain_manager_game_object: {fileID: 0}
   friends: []
   my_goal_object: {fileID: 0}
+  my_path: []
+  k_p: 2.5
+  k_d: 0.5
 --- !u!1 &5781826396937079012
 GameObject:
   m_ObjectHideFlags: 0

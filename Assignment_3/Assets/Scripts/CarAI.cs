@@ -13,10 +13,33 @@ namespace UnityStandardAssets.Vehicles.Car
 
         public GameObject terrain_manager_game_object;
         TerrainManager terrain_manager;
+        Rigidbody my_rigidbody;
 
         public GameObject[] friends; // use these to avoid collisions
 
         public GameObject my_goal_object;
+
+        //Planing class
+        PathPlanner pathplanner;
+        GraphEmbedding graph_embedding;
+        TSP_graph graph;
+
+        //Pathing variables
+        int own_index;
+        public List<Vector3> my_path;
+
+        // Tracking variables
+        public float k_p = 2.5f, k_d = 0.5f;
+        float to_path, distance, steering, acceleration, starting_timer = 0, stuck_timer = 0, old_acceleration = 0, acceleration_change, my_speed = 0, unstuck_error, old_unstuck_error = 100, unstuck_error_change, nextAngle;
+        int lookahead = 0, my_max_speed = 20, stuck_times = 0, to_target_idx;
+        bool starting_phase = true, is_stuck = false, counting = false, no_waypoint = true, break_flag = false;
+        Vector3 difference, target_position, aheadOfTarget_pos, target_velocity, position_error, velocity_error, desired_acceleration, closest, null_vector = new Vector3(0, 0, 0);
+
+
+        //RVO variables
+        private AgentRVO myAgent_;
+        private IList<AgentRVO> friendagents_;
+        //private IList<Obstacle> obstacles_;
 
         private void Start()
         {
@@ -24,71 +47,341 @@ namespace UnityStandardAssets.Vehicles.Car
             m_Car = GetComponent<CarController>();
             terrain_manager = terrain_manager_game_object.GetComponent<TerrainManager>();
 
-            // Plan your path here
-            // Replace the code below that makes a random path
-            // ...
+            // set hyperparameters
+            float padding = 1F;
 
-            Vector3 start_pos = transform.position; // terrain_manager.myInfo.start_pos;
-            Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
 
+            //GameObject
             friends = GameObject.FindGameObjectsWithTag("Car");
-
-            List<Vector3> my_path = new List<Vector3>();
-
-            my_path.Add(start_pos);
-
-            for (int i = 0; i < 3; i++)
+            my_rigidbody = GetComponent<Rigidbody>();
+            myAgent_ = new AgentRVO();
+            List<Vector3> locations = new List<Vector3>();
+            for (int i = 0; i < friends.Length; i++)
             {
-                Vector3 waypoint = start_pos + new Vector3(UnityEngine.Random.Range(-50.0f, 50.0f), 0, UnityEngine.Random.Range(-30.0f, 30.0f));
-                my_path.Add(waypoint);
+                locations.Add(friends[i].transform.position);
             }
-            my_path.Add(goal_pos);
 
+            // find own index
+            float min_distance = 100000F;
+            own_index = -1;
+            for (int i = 0; i < locations.Count; i++)
+            {
+                if ((locations[i] - transform.position).magnitude < min_distance)
+                {
+                    min_distance = (locations[i] - transform.position).magnitude;
+                    own_index = i;
+                }
+            }
 
-            // Plot your path to see if it makes sense
-            // Note that path can only be seen in "Scene" window, not "Game" window
-            Vector3 old_wp = start_pos;
+            GraphEmbedding graph_embedding = new GraphEmbedding(terrain_manager.terrain_filename, 1, padding);
+            PathPlanner path_planner = new PathPlanner();
+
+            my_path = new List<Vector3>();
+            Vector3 start_pos = transform.position; 
+            Vector3 goal_pos = my_goal_object.transform.position;
+            my_path = path_planner.plan_path(start_pos, goal_pos, graph_embedding, terrain_manager.myInfo, 1);
+            Vector3 old_wp = my_path[0];
             foreach (var wp in my_path)
             {
-                //Debug.DrawLine(old_wp, wp, Color.red, 100f);
+                Debug.DrawLine(old_wp, wp, Color.blue, 1000f);
                 old_wp = wp;
             }
 
-            
+
         }
-
-
         private void FixedUpdate()
         {
-            // Execute your path here
-            // ...
 
-            // this is how you access information about the terrain
-            int i = terrain_manager.myInfo.get_i_index(transform.position.x);
-            int j = terrain_manager.myInfo.get_j_index(transform.position.z);
-            float grid_center_x = terrain_manager.myInfo.get_x_pos(i);
-            float grid_center_z = terrain_manager.myInfo.get_z_pos(j);
+            // Starting out phase means no checking for stuck and no checking for breaking
+            if (starting_phase)
+            {
+                if (starting_timer < Time.time && !counting)
+                {
+                    starting_timer = Time.time + 5;
+                    counting = true;
+                }
 
-            //Debug.DrawLine(transform.position, new Vector3(grid_center_x, 0f, grid_center_z));
+                if (Time.time >= starting_timer)
+                {
+                    counting = false;
+                    starting_phase = false;
+                }
+
+            }
+
+            // Tracks the path generated by planner 
+
+            // Decide on lookahead based on speed;
+            lookahead = speedToLookahead(my_speed);
+
+            // Tracks forward along the path if not stuck
+            if (!is_stuck)
+            {
+                //Once run ok, reset the stuck checker
+                stuck_times = 0;
+
+                // Finding closest node on path
+                int to_path_idx = Find_Nearest(my_path, transform.position);
+
+                // Saving data about node on path closest to the car
+                Vector3 closest = my_path[to_path_idx];
+                difference = closest - transform.position;
+                to_path = (float)Math.Sqrt(Math.Pow(difference.x, 2) + Math.Pow(difference.z, 2));
+                //Debug.Log("closet node" + to_path_idx);
+                Debug.DrawLine(transform.position, closest, Color.green);
+
+                int to_target_idx = to_path_idx + 1;//+1
+
+                //Debug.Log("target node" + to_target_idx);
+
+                // Break condition
+                try
+                {
+                    if(to_target_idx< my_path.Count-1)
+                    {
+                        target_position = my_path[to_target_idx];
+                        aheadOfTarget_pos = my_path[to_target_idx + 1];
+                    }
+                    else
+                    {
+                        target_position = my_path[to_target_idx];
+                        aheadOfTarget_pos = my_path[my_path.Count-1];
+                    }
+
+                }
+                catch(Exception e)
+                {
+                    Debug.Log("Goal reached for index:"+own_index);
+                    //Debug.Log(e);
+                    //stop the car
+                    m_Car.Move(0f, Vector3.Dot(my_goal_object.transform.position - transform.position, transform.forward), 0f, 0f);
+                    //m_Car.Move(0, 0, 0, 0);
+                    break_flag = true;
+                    my_rigidbody.velocity = new Vector3(0, 0, 0);
+                }
+                if(break_flag)
+                {
+                    //enabled = false; //doesn't work
+                    m_Car.Move(0, 0, 0, 0);
 
 
-            Vector3 relVect = my_goal_object.transform.position - transform.position;
-            bool is_in_front = Vector3.Dot(transform.forward, relVect) > 0f;
-            bool is_to_right = Vector3.Dot(transform.right, relVect) > 0f;
+                }
+                else
+                {
+                    // Keep track of target position and velocity
+                    Vector3 prevelocity_ = aheadOfTarget_pos - target_position;
+                    myAgent_.setAgent(1f, 1f, 5F, 20, my_rigidbody.velocity, transform.position);
+                    myAgent_.setprefVelocity_(prevelocity_);
 
-            if(is_in_front && is_to_right)
-                m_Car.Move(1f, 1f, 0f, 0f);
-            if(is_in_front && !is_to_right)
-                m_Car.Move(-1f, 1f, 0f, 0f);
-            if(!is_in_front && is_to_right)
-                m_Car.Move(-1f, -1f, -1f, 0f);
-            if(!is_in_front && !is_to_right)
-                m_Car.Move(1f, -1f, -1f, 0f);
+                    //update Agent-Neighbor's statement
+                    friends = GameObject.FindGameObjectsWithTag("Car");
+                    myAgent_.clearNeighbor();
+                    for (int m = 0; m < friends.Length; m++)
+                    {
+                        if (m == own_index) continue;
+                        AgentRVO neighbor = new AgentRVO();
+                        Vector3 V_Neighbor = friends[m].GetComponent<Rigidbody>().velocity;
+                        Vector3 P_Neighbor = friends[m].transform.position;
+                        neighbor.setAgent(1f, 1f, 5F, 20, V_Neighbor, P_Neighbor);
+                        myAgent_.addNeighbor(neighbor);
+                    }
+                    // check range
+                    if (myAgent_.minumneighborDist_ < 10f)  //set to 15
+                    {
+                        //get new relative velocity
+                        //Debug.Log("RVO applied");
+                        target_velocity = myAgent_.updateVelocity();
+                    }
+                    else
+                    {
+                        Debug.Log("Derict");
+                        target_velocity = prevelocity_;
+                    }
+                
 
+                    Debug.DrawLine(transform.position, target_position, Color.white);
+                    Debug.DrawLine(transform.position, transform.position + 5 * target_velocity, Color.black);
 
-            // this is how you control the car
-            //m_Car.Move(1f, 1f, 1f, 0f);
+                    // a PD-controller to get desired velocity
+                    position_error = target_position - transform.position;
+                    velocity_error = target_velocity - my_rigidbody.velocity;
+                    desired_acceleration = k_p * position_error + k_d * velocity_error;
+
+                    // Apply controls
+                    steering = Vector3.Dot(desired_acceleration, transform.right);
+                    acceleration = Vector3.Dot(desired_acceleration, transform.forward);
+
+                    if (!starting_phase)
+                    {
+                        my_max_speed = 25; //curvatureToSpeed(nextAngle);
+                    }
+
+                    if (my_speed > my_max_speed)
+                    {
+                        Debug.Log("now breaking");
+                        m_Car.Move(steering, -acceleration, -acceleration, 0f);
+                    }
+                    else
+                    {
+                        m_Car.Move(steering, acceleration, acceleration, 0f);
+                    }
+                    //Debug.Log("my_speed" + my_speed);
+                    // State variables for stuck condition
+                    my_speed = (float)Math.Sqrt(Math.Pow(my_rigidbody.velocity.x, 2) + Math.Pow(my_rigidbody.velocity.z, 2));
+                    float new_acceleration = (float)Math.Sqrt(Math.Pow(desired_acceleration.x, 2) + Math.Pow(desired_acceleration.z, 2));
+                    acceleration_change = new_acceleration - old_acceleration;
+                    old_acceleration = new_acceleration;
+                }
+
+                // Check stuckness. If stuck -> go to else statement below
+                if (my_speed < 0.15 && acceleration_change < 0.0001 && !starting_phase)
+                {
+                    if (stuck_timer <= Time.time && !counting)
+                    {
+                        counting = true;
+                        stuck_timer = Time.time + 1;
+                    }
+
+                    if (Time.time > stuck_timer)
+                    {
+                        Debug.Log("Car stuck detected");
+                        counting = false;
+                        is_stuck = true;
+                    }
+                }
+            }
+
+            // We are stuck
+            else
+            {
+
+                stuck_times += 1;
+                // Decide on lookbehind based on speed;
+                lookahead = 1; //speedToLookahead(my_speed);
+                System.Random ran = new System.Random();
+                if (no_waypoint)
+                {
+                    // Finding closest node on path
+                    int to_path_idx = Find_Nearest(my_path, transform.position);
+                    Debug.Log("Find_Nearest_path_idx" + to_path_idx);
+                    // Saving data about node on path closest to the car
+                    closest = my_path[to_path_idx];
+                    difference = closest - transform.position;
+                    to_path = (float)Math.Sqrt(Math.Pow(difference.x, 2) + Math.Pow(difference.z, 2));
+
+                    // Finding target node on path
+                    float to_target = 100;
+                    to_target_idx = 0;
+                    int dummy_idx2 = 0;
+                    foreach (Vector3 node in my_path)
+                    {
+                        if (dummy_idx2 > to_path_idx)
+                        {
+                            break;
+                        }
+
+                        difference = node - closest;
+                        distance = (float)Math.Sqrt(Math.Pow(difference.x, 2) + Math.Pow(difference.z, 2));
+
+                        if (Math.Abs(distance + to_path - lookahead) < to_target)
+                        {
+                            to_target = Math.Abs(distance + to_path - lookahead);
+                            to_target_idx = dummy_idx2;
+                        }
+                        dummy_idx2 += 1;
+                    }
+
+                    no_waypoint = false;
+                }
+                /*
+                if (stuck_times == 10)
+                {
+                    to_target_idx = ran.Next(ran.Next(0, to_target_idx), ran.Next(to_target_idx, my_path.Count-1));
+                    Debug.Log("Random movement to index=" + to_target_idx);
+                    //stuck_times = 0;
+                }
+                */
+                // Break condition
+                try
+                {
+                    if (stuck_times == 20 )
+                    {
+                        //to_target_idx = ran.Next(to_target_idx, my_path.Count);
+                        //target_position = my_path[to_target_idx];
+                        target_position = new Vector3(UnityEngine.Random.Range(-5.0f, 5.0f), 0, UnityEngine.Random.Range(-5.0f, 5.0f));
+                        Debug.Log("Random movement to sp index");
+                        stuck_times = 0;
+                    }
+                    else
+                    {
+                        target_position = my_path[to_target_idx];
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("whole size id" + my_path.Count + "to_target_idx:" + to_target_idx);
+                    Debug.Log(e);
+                    Debug.Log("Break condition Error");
+                }
+
+                // Keep track of target position and velocity
+                target_velocity = null_vector;
+                Debug.DrawLine(transform.position, target_position);
+
+                // a PD-controller to get desired velocity
+                position_error = target_position - transform.position;
+                velocity_error = target_velocity - my_rigidbody.velocity;
+                desired_acceleration = k_p * position_error + k_d * velocity_error;
+
+                // Apply controls
+                steering = Vector3.Dot(desired_acceleration, transform.right);
+                acceleration = Vector3.Dot(desired_acceleration, transform.forward);
+                m_Car.Move(steering, acceleration, acceleration, 0f);
+                // State variables for unstuck condition
+                unstuck_error = (float)Math.Sqrt(Math.Pow(position_error.x, 2) + Math.Pow(position_error.z, 2));
+                unstuck_error_change = (float)Math.Abs(unstuck_error - old_unstuck_error);
+                old_unstuck_error = unstuck_error;
+
+                if (unstuck_error_change < 0.0001)
+                {
+                    old_unstuck_error = 100;
+                    is_stuck = false;
+                    no_waypoint = true;
+                }
+            }
+
 
         }
+        // Function that computes the appropriate lookahead depending on the current speed
+        public int speedToLookahead(float my_speed)
+        {
+            int lookahead = (int)(2 + Math.Sqrt(my_speed));
+            return lookahead;
+        }
+
+        public int Find_Nearest(List<Vector3> my_path, Vector3 nowpos)
+        {
+            // Finding closest node on path
+            float to_path = 100;
+            int to_path_idx = 0;
+            int dummy_idx = 0;
+            foreach (Vector3 node in my_path)
+            {
+                Vector3 difference = nowpos - node;
+                float distance = (float)Math.Sqrt(Math.Pow(difference.x, 2) + Math.Pow(difference.z, 2));
+
+                if (distance < to_path)
+                {
+                    to_path = distance;
+                    to_path_idx = dummy_idx;
+                }
+
+                dummy_idx += 1;
+            }
+
+            return to_path_idx;
+        }
+
+     
     }
 }
