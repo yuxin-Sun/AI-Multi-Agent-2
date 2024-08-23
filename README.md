@@ -1,7 +1,7 @@
 # AI and Multi agent systems 
 Labs for Unity Multi Agent Vehicles—— Multi agent collision avoidance
 
-This repo contains the individual work contribution to the group project.
+This repo contains the individual work contribution to the group project. Please switch to the Branch: openfield to find the code.
 
 
 ## Contents 
